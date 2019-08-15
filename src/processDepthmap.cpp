@@ -316,6 +316,7 @@ int main(int argc, char** argv)
 
   ros::Subscriber voDataSub = nh.subscribe<nav_msgs::Odometry> ("/cam_to_init", 5, voDataHandler);
 
+  //未发布　激光点云？
   ros::Subscriber syncCloudSub = nh.subscribe<sensor_msgs::PointCloud2>
                                  ("/sync_scan_cloud_filtered", 5, syncCloudHandler);
 

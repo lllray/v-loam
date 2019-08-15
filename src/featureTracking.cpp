@@ -215,7 +215,9 @@ void imageDataHandler(const sensor_msgs::Image::ConstPtr& imageData)
   //!隔两张图像才输出一副图像，如0,1不要，2输出，3,4不要，5输出
   showCount = (showCount + 1) % (showSkipNum + 1);
   if (showCount == showSkipNum) {
-    Mat imageShowMat(imageShow);
+    //lx change 0815
+    Mat imageShowMat= cv::cvarrToMat(imageShow);
+    //Mat imageShowMat(imageShow);
     bridge.image = imageShowMat;
     bridge.encoding = "mono8";
     sensor_msgs::Image::Ptr imageShowPointer = bridge.toImageMsg();
@@ -230,6 +232,18 @@ int main(int argc, char** argv)
 
   mapx = cvCreateImage(imgSize, IPL_DEPTH_32F, 1);
   mapy = cvCreateImage(imgSize, IPL_DEPTH_32F, 1);
+
+/*!
+// 计算形变和非形变图像的对应（map）
+// void cvInitUndistortMap( const CvMat* intrinsic_matrix, const CvMat* distortion_coeffs, CvArr* mapx, CvArr* mapy );
+// 参数说明
+// intrinsic_matrix——摄像机的内参数矩阵(A) [fx 0 cx; 0 fy cy; 0 0 1].
+// distortion_coeffs——形变系数向量[k1, k2, p1, p2]，大小为4x1或者1x4。
+// mapx——x坐标的对应矩阵。
+// mapy——y坐标的对应矩阵。
+// 概述
+// 函数cvInitUndistortMap预先计算非形变对应－正确图像的每个像素在形变图像里的坐标。这个对应可以传递给cvRemap函数（跟输入和输出图像一起）
+*/
   cvInitUndistortMap(&kMat, &dMat, mapx, mapy);
 
   CvSize subregionSize = cvSize((int)subregionWidth, (int)subregionHeight);
@@ -240,8 +254,8 @@ int main(int argc, char** argv)
   pyrCur = cvCreateImage(pyrSize, IPL_DEPTH_32F, 1);
   pyrLast = cvCreateImage(pyrSize, IPL_DEPTH_32F, 1);
 
-  ros::Subscriber imageDataSub = nh.subscribe<sensor_msgs::Image>("/image/raw", 1, imageDataHandler);
-
+  //ros::Subscriber imageDataSub = nh.subscribe<sensor_msgs::Image>("/image/raw", 1, imageDataHandler);
+  ros::Subscriber imageDataSub = nh.subscribe<sensor_msgs::Image>("/cam0/image_raw", 1, imageDataHandler);
   ros::Publisher imagePointsLastPub = nh.advertise<sensor_msgs::PointCloud2> ("/image_points_last", 5);
   imagePointsLastPubPointer = &imagePointsLastPub;
 

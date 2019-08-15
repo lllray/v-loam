@@ -165,9 +165,14 @@ void transformAssociateToBA()
 
 void depthPointsHandler(const sensor_msgs::PointCloud2ConstPtr& depthPoints2)
 {
+//    pcl::PCLPointCloud2 input;
+//    pcl_conversions::toPCL(*depthPoints2,input);
+////    sensor_msgs::PointCloud2 input;
+////    input=*depthPoints2;
   depthPointsTime = depthPoints2->header.stamp.toSec();
   depthPointsStacked->clear();
   pcl::fromROSMsg(*depthPoints2, *depthPointsStacked);
+ //   pcl::fromPCLPointCloud2(input, *depthPointsStacked);
   int depthPointsStackedNum = depthPointsStacked->points.size();
 
   for (int i = 0; i < keyframeNum; i++) {
