@@ -43,8 +43,9 @@ class Point3d {
   double _y;
   double _z;
 public:
-  static const int dim = 3;
+
   static const int size = 3;
+  static const int dim = 3;
   static const char* name() {
     return "Point3d";
   }

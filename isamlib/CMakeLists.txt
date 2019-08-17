@@ -6,12 +6,16 @@ file(GLOB SRCS RELATIVE "${PROJECT_SOURCE_DIR}/isamlib" "*.cpp")
 # isamlib
 add_library(isamlib ${SRCS})
 set_property(TARGET isamlib PROPERTY OUTPUT_NAME isam)
-
+#set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
+#        "~/tools/g2o/cmake_modules"
+#        )
 # simple way of finding CHOLMOD
-find_package(Cholmod REQUIRED)
-include_directories(${CHOLMOD_INCLUDES})
-target_link_libraries(isamlib ${CHOLMOD_LIBRARIES})
-
+#set(Cholmod_DIR /usr/share/doc/libsuitesparse-dev)
+#find_package(Cholmod REQUIRED)
+#include_directories(${CHOLMOD_INCLUDES})
+#target_link_libraries(isamlib ${CHOLMOD_LIBRARIES})
+include_directories("/usr/include/suitesparse")
+target_link_libraries(isamlib cholmod)
 # install library
 install(TARGETS isamlib
   PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE

@@ -127,6 +127,12 @@ void diffRotation(double cx, double cy, double cz, double lx, double ly, double 
 
 void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
 {
+    static int i=0;
+    i++;
+    if(i==2)
+    {
+    ROS_INFO("BREAKPOINT");
+    }
   imagePointsLastTime = imagePointsCurTime;
   imagePointsCurTime = imagePoints2->header.stamp.toSec();
 
@@ -180,8 +186,11 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
   imagePointsCur->clear();
   pcl::fromROSMsg(*imagePoints2, *imagePointsCur);
 
+
   imagePointsLastNum = imagePointsCurNum;
   imagePointsCurNum = imagePointsCur->points.size();
+
+  ROS_INFO("VisualOdometry | imagePointsCurNum:=%d",imagePointsCurNum);
 
   pcl::PointCloud<ImagePoint>::Ptr startPointsTemp = startPointsLast;
   startPointsLast = startPointsCur;
@@ -549,15 +558,16 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
 //!根据《14讲》式（6.21），这里用的是高斯牛顿法而不是LM算法
       cv::solve(matAtA, matAtB, matX, cv::DECOMP_QR);
 
-      //if (fabs(matX.at<float>(0, 0)) < 0.1 && fabs(matX.at<float>(1, 0)) < 0.1 && 
-      //    fabs(matX.at<float>(2, 0)) < 0.1) {
+      //NOT GET SLOVE
+      if (fabs(matX.at<float>(0, 0)) < 0.1 && fabs(matX.at<float>(1, 0)) < 0.1 &&
+          fabs(matX.at<float>(2, 0)) < 0.1) {
         transform[0] += matX.at<float>(0, 0);
         transform[1] += matX.at<float>(1, 0);
         transform[2] += matX.at<float>(2, 0);
         transform[3] += matX.at<float>(3, 0);
         transform[4] += matX.at<float>(4, 0);
         transform[5] += matX.at<float>(5, 0);
-      //}
+      }
 
       float deltaR = sqrt(matX.at<float>(0, 0) * 180 / PI * matX.at<float>(0, 0) * 180 / PI
                    + matX.at<float>(1, 0) * 180 / PI * matX.at<float>(1, 0) * 180 / PI
@@ -570,7 +580,7 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
         break;
       }
 
-      //ROS_INFO ("iter: %d, deltaR: %f, deltaT: %f", iterCount, deltaR, deltaT);
+     // ROS_INFO ("iter: %d, deltaR: %f, deltaT: %f", iterCount, deltaR, deltaT);
     }
   }
 
@@ -814,7 +824,12 @@ void depthCloudHandler(const sensor_msgs::PointCloud2ConstPtr& depthCloud2)
 
   depthCloud->clear();
   pcl::fromROSMsg(*depthCloud2, *depthCloud);
+//    //lx add
+//    Preprocessing<pcl::PointXYZI> test;
+//    test.removeNan(depthCloud);
+//    //end add
   depthCloudNum = depthCloud->points.size();
+  ROS_INFO("VisualOdometry | depthCloudNum:=%d",depthCloudNum);
 //!将整个点云投影到焦距为单位距离=10的平面上
   if (depthCloudNum > 10) {
     for (int i = 0; i < depthCloudNum; i++) {
@@ -880,9 +895,10 @@ int main(int argc, char** argv)
 
   ros::Subscriber depthCloudSub = nh.subscribe<sensor_msgs::PointCloud2> 
                                   ("/depth_cloud", 5, depthCloudHandler);
-
-  ros::Subscriber imuDataSub = nh.subscribe<sensor_msgs::Imu> ("/imu/data", 5, imuDataHandler);
-
+ //cmu
+ ros::Subscriber imuDataSub = nh.subscribe<sensor_msgs::Imu> ("/imu/data", 5, imuDataHandler);
+ //kitti
+ //   ros::Subscriber imuDataSub = nh.subscribe<sensor_msgs::Imu> ("/imu0", 5, imuDataHandler);
   ros::Publisher voDataPub = nh.advertise<nav_msgs::Odometry> ("/cam_to_init", 5);
   voDataPubPointer = &voDataPub;
 
