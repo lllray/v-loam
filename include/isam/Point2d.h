@@ -45,8 +45,9 @@ class Point2d {
   double _y;
 
 public:
-  static const int dim = 2;
+
   static const int size = 2;
+  static const int dim = 2;
   static const char* name() {
     return "Point2d";
   }

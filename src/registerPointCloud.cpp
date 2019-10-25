@@ -200,9 +200,12 @@ int main(int argc, char** argv)
   ros::NodeHandle nh;
 
   ros::Subscriber voDataSub = nh.subscribe<nav_msgs::Odometry> ("/cam2_to_init", 5, voDataHandler);
-
+  //cmu
   ros::Subscriber syncCloudSub = nh.subscribe<sensor_msgs::PointCloud2>
-                                 ("/sync_scan_cloud_filtered", 5, syncCloudHandler);
+                                   ("/sync_scan_cloud_filtered", 5, syncCloudHandler);
+  //kitti
+  //ros::Subscriber syncCloudSub = nh.subscribe<sensor_msgs::PointCloud2>
+  //                               ("/velodyne_points", 5, syncCloudHandler);
 
   ros::Publisher surroundCloudPub = nh.advertise<sensor_msgs::PointCloud2> ("/surround_cloud", 1);
   surroundCloudPubPointer = &surroundCloudPub;

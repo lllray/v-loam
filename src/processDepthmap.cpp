@@ -48,6 +48,7 @@ ros::Publisher *depthCloudPubPointer = NULL;
 
 void voDataHandler(const nav_msgs::Odometry::ConstPtr& voData)
 {
+    ros::spinOnce();
   double time = voData->header.stamp.toSec();
 
   double roll, pitch, yaw;
@@ -115,7 +116,7 @@ void voDataHandler(const nav_msgs::Odometry::ConstPtr& voData)
   double sinry = sin(ry);
   double cosrz = cos(rz);
   double sinrz = sin(rz);
-
+  ROS_INFO("ProcessDepthmap | voDataHandler | depthCloud size :=%d",depthCloud->size());
   if (time - timeRec < 0.5) {
     pcl::PointXYZI point;
     tempCloud->clear();
@@ -188,6 +189,8 @@ void voDataHandler(const nav_msgs::Odometry::ConstPtr& voData)
     depthCloud2.header.frame_id = "camera2";
     depthCloud2.header.stamp = voData->header.stamp;
     depthCloudPubPointer->publish(depthCloud2);
+    ROS_INFO("ProcessDepthmap | pub depthCloud2 success");
+
   }
 
   timeRec = time;
@@ -195,6 +198,8 @@ void voDataHandler(const nav_msgs::Odometry::ConstPtr& voData)
 
 void syncCloudHandler(const sensor_msgs::PointCloud2ConstPtr& syncCloud2)
 {
+
+  //  ROS_INFO("START syncCloudHandler !");
   if (startCount < startSkipNum) {
     startCount++;
     return;
@@ -210,6 +215,11 @@ void syncCloudHandler(const sensor_msgs::PointCloud2ConstPtr& syncCloud2)
 
   syncCloud->clear();
   pcl::fromROSMsg(*syncCloud2, *syncCloud);
+
+  //lx add
+  Preprocessing<pcl::PointXYZ> test;
+  test.removeNan(syncCloud);
+  //end add
 
   double scale = 0;
   int voPreInd = keepVoDataNum - 1;
@@ -250,6 +260,9 @@ void syncCloudHandler(const sensor_msgs::PointCloud2ConstPtr& syncCloud2)
   pcl::PointXYZI point;
   double x1, y1, z1, x2, y2, z2;
   int syncCloudNum = syncCloud->points.size();
+
+   ROS_INFO("ProcessDepthmap | syncCloudNum:=%d",syncCloudNum);
+
   for (int i = 0; i < syncCloudNum; i++) {
     point.x = syncCloud->points[i].x;
     point.y = syncCloud->points[i].y;
@@ -307,6 +320,7 @@ void syncCloudHandler(const sensor_msgs::PointCloud2ConstPtr& syncCloud2)
       depthCloud->push_back(point);
     }
   }
+    ROS_INFO("ProcessDepthmap | syncCloudHandler | depthCloud size :=%d",depthCloud->size());
 }
 
 int main(int argc, char** argv)
@@ -316,8 +330,13 @@ int main(int argc, char** argv)
 
   ros::Subscriber voDataSub = nh.subscribe<nav_msgs::Odometry> ("/cam_to_init", 5, voDataHandler);
 
+  //未发布　激光点云？
+  //cmu
   ros::Subscriber syncCloudSub = nh.subscribe<sensor_msgs::PointCloud2>
-                                 ("/sync_scan_cloud_filtered", 5, syncCloudHandler);
+          ("/sync_scan_cloud_filtered", 5, syncCloudHandler);
+  //kitti
+  //ros::Subscriber syncCloudSub = nh.subscribe<sensor_msgs::PointCloud2>
+  //                               ("/velodyne_points", 5, syncCloudHandler);
 
   ros::Publisher depthCloudPub = nh.advertise<sensor_msgs::PointCloud2> ("/depth_cloud", 5);
   depthCloudPubPointer = &depthCloudPub;

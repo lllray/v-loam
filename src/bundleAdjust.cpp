@@ -20,6 +20,12 @@ using namespace std;
 using namespace isam;
 using namespace Eigen;
 
+//lx add to solve the error undefined reference to `isam::Pose2d::dim'
+namespace isam
+{
+    const int Pose3d::dim;
+    const int Pose2d::dim;
+}
 const double PI = 3.1415926;
 
 const int keyframeNum = 5;
@@ -165,9 +171,14 @@ void transformAssociateToBA()
 
 void depthPointsHandler(const sensor_msgs::PointCloud2ConstPtr& depthPoints2)
 {
+//    pcl::PCLPointCloud2 input;
+//    pcl_conversions::toPCL(*depthPoints2,input);
+////    sensor_msgs::PointCloud2 input;
+////    input=*depthPoints2;
   depthPointsTime = depthPoints2->header.stamp.toSec();
   depthPointsStacked->clear();
   pcl::fromROSMsg(*depthPoints2, *depthPointsStacked);
+ //   pcl::fromPCLPointCloud2(input, *depthPointsStacked);
   int depthPointsStackedNum = depthPointsStacked->points.size();
 
   for (int i = 0; i < keyframeNum; i++) {

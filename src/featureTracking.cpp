@@ -68,6 +68,8 @@ cv_bridge::CvImage bridge;
 
 void imageDataHandler(const sensor_msgs::Image::ConstPtr& imageData) 
 {
+    ros::spinOnce();
+   // ROS_INFO("START imageDataHandler !");
   timeLast = timeCur;
   timeCur = imageData->header.stamp.toSec() - 0.1163;
 
@@ -87,7 +89,7 @@ void imageDataHandler(const sensor_msgs::Image::ConstPtr& imageData)
   //!缩小一点可能角点检测速度比较快
   cvResize(imageLast, imageShow);
   cvCornerHarris(imageShow, harrisLast, 3);
-
+  //cvShowImage("imageShow",imageShow);
   CvPoint2D32f *featuresTemp = featuresLast;
   featuresLast = featuresCur;
   featuresCur = featuresTemp;
@@ -103,6 +105,8 @@ void imageDataHandler(const sensor_msgs::Image::ConstPtr& imageData)
   }
 
   int recordFeatureNum = totalFeatureNum;
+  //cvShowImage("imageLast",imageLast);
+  cvWaitKey(1);
   for (int i = 0; i < ySubregionNum; i++) {
     for (int j = 0; j < xSubregionNum; j++) {
       //!ind指向当前的subregion编号
@@ -116,9 +120,32 @@ void imageDataHandler(const sensor_msgs::Image::ConstPtr& imageData)
         CvRect subregion = cvRect(subregionLeft, subregionTop, (int)subregionWidth, (int)subregionHeight);
         cvSetImageROI(imageLast, subregion);
 
+        /*!在这个函数中，输入图像image必须是8位或者是32位，也就是IPL_DEPTH_8U 或者是 IPL_DEPTH_32F 单通道图像。
+            第二和第三个参数是大小与输入图像相同的32位单通道图像。
+            参数 temp_image 和 eig_image 在计算过程中被当做临时变量使用，计算结束后eig_image中的内容是有效的。特别的，每个函数包含了输入图像中对应的最小特征值。
+
+            corners 是函数的输出，为检测到 32位（CvPoint2D32f）的角点数组，在调用 cvGoodFeaturesToTrack 函数之前要为该数组分配内存空间。
+
+            corner_count 表示可以返回的最大角点数目，函数调用结束后，其返回实际检测到的角点数目。
+            quality_level 表示一点呗认为是角点的可接受的最小特征值，实际用于过滤角点的最小特征值是quality_level与图像汇总最大特征值的乘积，所以quality_level的值不应该超过1，通常取值为（0.10或者是0.01）
+
+            检测完之后还要进一步剔除掉一些距离较近的角点，min_distance 保证返回的角点之间的距离不小于min_distance个像素
+
+            mask是可选参数，是一幅像素值为boolean类型的图像，用于指定输入图像中参与角点计算的像素点，若mask的值为NULL，值表示选择整个图像
+
+            block_size 是计算导数的自相关矩阵是指定的领域，采用小窗口计算的结果比单点（也就是block_size 为1）计算的结果要好
+
+            函数cvGoodFeaturesToTrack() 的输出结果为需找到的角点的位置数组。
+            int use_harris CV_DEFAULT(0),
+            double k CV_DEFAULT(0.04) );
+                                    */
+//        cvShowImage("imageLast",imageLast);
+//        cvWaitKey(1);
         cvGoodFeaturesToTrack(imageLast, imageEig, imageTmp, featuresLast + totalFeatureNum,
                               &numToFind, 0.1, 5.0, NULL, 3, 1, 0.04);
-
+//        cvGoodFeaturesToTrack(imageLast, imageEig, imageTmp, featuresLast + totalFeatureNum,
+//                               &numToFind, 0.01, 0.1, NULL, 3);
+//        ROS_INFO("FeatureTracking | feature num to find:=%d",numToFind);
         int numFound = 0;
         for(int k = 0; k < numToFind; k++) {
           featuresLast[totalFeatureNum + k].x += subregionLeft;
@@ -143,12 +170,43 @@ void imageDataHandler(const sensor_msgs::Image::ConstPtr& imageData)
       }
     }
   }
-
+//    ROS_INFO("FeatureTracking | totalFeatureNum:=%d",totalFeatureNum);
+//    ROS_INFO("FeatureTracking | featuresIndFromStart:=%d",featuresIndFromStart);
+    /*!
+        prev在时间 t 的第一帧
+        curr
+        在时间 t + dt 的第二帧
+        prev_pyr
+        第一帧的金字塔缓存. 如果指针非 NULL , 则缓存必须有足够的空间来存储金字塔从层 1 到层 #level 的内容。尺寸 (image_width+8)*image_height/3 比特足够了
+        curr_pyr
+        与 prev_pyr 类似， 用于第二帧
+        prev_features
+        需要发现光流的点集
+        curr_features
+        包含新计算出来的位置的 点集
+        count
+        特征点的数目
+        win_size
+        每个金字塔层的搜索窗口尺寸
+        level
+        最大的金字塔层数。如果为 0 , 不使用金字塔 (即金字塔为单层), 如果为 1 , 使用两层，下面依次类推。
+        status
+        数组。如果对应特征的光流被发现，数组中的每一个元素都被设置为 1， 否则设置为 0。
+        error
+        双精度数组，包含原始图像碎片与移动点之间的差。为可选参数，可以是 NULL .
+        criteria
+        准则，指定在每个金字塔层，为某点寻找光流的迭代过程的终止条件。
+        flags
+        其它选项：
+        CV_LKFLOW_PYR_A_READY , 在调用之前，第一帧的金字塔已经准备好
+        CV_LKFLOW_PYR_B_READY , 在调用之前，第二帧的金字塔已经准备好
+        CV_LKFLOW_INITIAL_GUESSES , 在调用之前，数组 B 包含特征的初始坐标 （Hunnish: 在本节中没有出现数组 B，不知是指的哪一个）*/
   cvCalcOpticalFlowPyrLK(imageLast, imageCur, pyrLast, pyrCur,
                          featuresLast, featuresCur, totalFeatureNum, cvSize(winSize, winSize), 
                          3, featuresFound, featuresError, 
                          cvTermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 30, 0.01), 0);
-
+   // ROS_INFO("FeatureTracking | totalFeatureNum:=%d",totalFeatureNum);
+   //std::cout<<"FeatureTracking | featuresFound:"<<featuresFound<<endl;
   for (int i = 0; i < totalSubregionNum; i++) {
     subregionFeatureNum[i] = 0;
   }
@@ -208,19 +266,29 @@ void imageDataHandler(const sensor_msgs::Image::ConstPtr& imageData)
   meanShiftX /= totalFeatureNum;
   meanShiftY /= totalFeatureNum;
 
+  //lx add to remove nan
+//    Preprocessing<ImagePoint> test;
+//    test.removeNan(imagePointsLast);
+  //end add
+
   sensor_msgs::PointCloud2 imagePointsLast2;
+
   pcl::toROSMsg(*imagePointsLast, imagePointsLast2);
+
   imagePointsLast2.header.stamp = ros::Time().fromSec(timeLast);
   imagePointsLastPubPointer->publish(imagePointsLast2);
   //!隔两张图像才输出一副图像，如0,1不要，2输出，3,4不要，5输出
   showCount = (showCount + 1) % (showSkipNum + 1);
   if (showCount == showSkipNum) {
-    Mat imageShowMat(imageShow);
+    //lx change 0815
+    Mat imageShowMat= cv::cvarrToMat(imageShow);
+    //Mat imageShowMat(imageShow);
     bridge.image = imageShowMat;
     bridge.encoding = "mono8";
     sensor_msgs::Image::Ptr imageShowPointer = bridge.toImageMsg();
     imageShowPubPointer->publish(imageShowPointer);
   }
+
 }
 
 int main(int argc, char** argv)
@@ -230,6 +298,18 @@ int main(int argc, char** argv)
 
   mapx = cvCreateImage(imgSize, IPL_DEPTH_32F, 1);
   mapy = cvCreateImage(imgSize, IPL_DEPTH_32F, 1);
+
+/*!
+// 计算形变和非形变图像的对应（map）
+// void cvInitUndistortMap( const CvMat* intrinsic_matrix, const CvMat* distortion_coeffs, CvArr* mapx, CvArr* mapy );
+// 参数说明
+// intrinsic_matrix——摄像机的内参数矩阵(A) [fx 0 cx; 0 fy cy; 0 0 1].
+// distortion_coeffs——形变系数向量[k1, k2, p1, p2]，大小为4x1或者1x4。
+// mapx——x坐标的对应矩阵。
+// mapy——y坐标的对应矩阵。
+// 概述
+// 函数cvInitUndistortMap预先计算非形变对应－正确图像的每个像素在形变图像里的坐标。这个对应可以传递给cvRemap函数（跟输入和输出图像一起）
+*/
   cvInitUndistortMap(&kMat, &dMat, mapx, mapy);
 
   CvSize subregionSize = cvSize((int)subregionWidth, (int)subregionHeight);
@@ -240,8 +320,10 @@ int main(int argc, char** argv)
   pyrCur = cvCreateImage(pyrSize, IPL_DEPTH_32F, 1);
   pyrLast = cvCreateImage(pyrSize, IPL_DEPTH_32F, 1);
 
+  //cmu
   ros::Subscriber imageDataSub = nh.subscribe<sensor_msgs::Image>("/image/raw", 1, imageDataHandler);
-
+  //kitti
+  //ros::Subscriber imageDataSub = nh.subscribe<sensor_msgs::Image>("/camera/image_raw", 1, imageDataHandler);
   ros::Publisher imagePointsLastPub = nh.advertise<sensor_msgs::PointCloud2> ("/image_points_last", 5);
   imagePointsLastPubPointer = &imagePointsLastPub;
 

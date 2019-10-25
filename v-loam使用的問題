@@ -1,0 +1,67 @@
+1 
+Q:
+Fail to rosmake
+A:
+The package is not in your package path probably. Try
+export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:`pwd`
+and rosmake again.
+
+2
+Q:
+ [rospack] Error: package 'demo_lidar' depends on non-existent package 'opencv2' and rosdep claims that it is not a system dependency. Check the ROS_PACKAGE_PATH or try calling 'rosdep update'
+
+A:
+简单的说，就是indigo版本以后，opencv的包，就不叫opencv2了，改成cv_bridge即可。
+
+3
+Q:[rospack] Error: depends on non-existent package 'cv_bridge' and rosdep claims that it is not a system dependency. Check the ROS_PACKAGE_PATH or try calling 'rosdep update'
+A:
+$sudo apt-get install ros-kinetic-cv-bridge
+
+4
+Q:[rospack] Error: depends on non-existent package 'pcl_ros' and rosdep claims that it is not a system dependency. Check the ROS_PACKAGE_PATH or try calling 'rosdep update'
+A:
+$sudo apt-get install ros-kinetic-pcl_ros
+其他类推
+
+5
+Q:
+cannot convert (type ‘sensor_msgs::PointCloud2 {aka sensor_msgs::PointCloud
+A:
+添加#include <pcl_conversions/pcl_conversions.h>
+
+6
+Q:/usr/local/include/opencv2/contrib/openfabmap.hpp:330:24: error: template argument 2 is invalid        map<int, vector<int> > testInvertedMap;                           ^   /usr/local/include/opencv2/contrib/openfabmap.hpp:330:24: error: template argument
+A:
+注释相关h文件
+
+7
+Q: 
+/usr/lib/x86_64-linux-gnu/libboost_system.so: error adding symbols: 
+A:
+添加　target_link_libraries(ABC boost_system boost_filesystem)
+例如
+rosbuild_add_executable(featureTracking src/featureTracking.cpp)
+TARGET_LINK_LIBRARIES(featureTracking boost_system boost_filesystem)
+
+8 isam 环境搭建
+sudo apt-get install cmake libsuitesparse-dev libeigen3-dev libsdl1.2-dev doxygen graphviz
+
+9
+Q:　 Add the installation prefix of "Cholmod" to CMAKE_PREFIX_PATH or set   "Cholmod_DIR" to a directory containing one of the above files.
+
+A:Cholmod 来源与suitesparse
+添加　
+include_directories("/usr/include/suitesparse")
+target_link_libraries(isamlib cholmod)
+
+10
+Q:
+undefined reference to `isam::Pose2d::dim'
+A:
+//lx add to solve the error undefined reference to `isam::Pose2d::dim'
+namespace isam
+{
+    const int Pose3d::dim;
+    const int Pose2d::dim;
+}
